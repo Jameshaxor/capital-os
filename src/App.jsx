@@ -3,16 +3,16 @@ import {
   LayoutDashboard, LineChart, Briefcase, Search,
   Zap, Newspaper, Settings, Bell, Command,
   TrendingUp, TrendingDown, Activity, ShieldCheck, 
-  ChevronRight, Menu, X, Filter, ArrowUpDown, LogOut, UploadCloud, FileText, CheckCircle
+  ChevronRight, Menu, X, Filter, ArrowUpDown, LogOut, UploadCloud, FileText, CheckCircle, AlertCircle
 } from 'lucide-react';
 
 // FIREBASE IMPORTS
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 
 // --- FIREBASE INITIALIZATION ---
-// PASTE YOUR FIREBASE CONFIG KEYS HERE BEFORE COMMITTING!
+// PASTE YOUR FIREBASE CONFIG KEYS HERE
 const firebaseConfig = {
   apiKey: "AIzaSyCw2rNU1drpsUidujbQMIIfLuQ6LmZcgxo",
   authDomain: "capitalos-f34f6.firebaseapp.com",
@@ -22,13 +22,13 @@ const firebaseConfig = {
   appId: "1:426663595227:web:cbdf7344b950a8e98ad0fe"
 };
 
-// Initialize Firebase only if config is provided
 const app = firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null;
 const auth = app ? getAuth(app) : null;
 const db = app ? getFirestore(app) : null;
 
 // --- MOCK DATA FALLBACKS ---
 const SECTORS = ['Banking', 'IT', 'Energy', 'FMCG', 'Auto', 'Pharma', 'Telecom', 'Metals'];
+const MARKET_CAPS = ['Large Cap', 'Mid Cap', 'Small Cap'];
 
 const FALLBACK_STOCKS = [
   { sym: 'RELIANCE', name: 'Reliance Industries', basePrice: 2945.60, vol: 0.002, mcap: 'Large Cap', sector: 'Energy' },
@@ -37,12 +37,28 @@ const FALLBACK_STOCKS = [
   { sym: 'INFY', name: 'Infosys Limited', basePrice: 1567.80, vol: 0.002, mcap: 'Large Cap', sector: 'IT' },
   { sym: 'ICICIBANK', name: 'ICICI Bank Ltd', basePrice: 1089.45, vol: 0.003, mcap: 'Large Cap', sector: 'Banking' },
   { sym: 'ITC', name: 'ITC Limited', basePrice: 462.15, vol: 0.001, mcap: 'Large Cap', sector: 'FMCG' },
+  { sym: 'TATAMOTORS', name: 'Tata Motors', basePrice: 987.60, vol: 0.004, mcap: 'Large Cap', sector: 'Auto' },
+  { sym: 'SUNPHARMA', name: 'Sun Pharma', basePrice: 1543.20, vol: 0.002, mcap: 'Large Cap', sector: 'Pharma' },
+];
+
+const INITIAL_INDICES = [
+  { id: 'nifty', name: 'NIFTY 50', basePrice: 22147.90, vol: 0.001 },
+  { id: 'sensex', name: 'SENSEX', basePrice: 72831.94, vol: 0.001 },
+  { id: 'bank', name: 'NIFTY BANK', basePrice: 47562.30, vol: 0.0015 },
+  { id: 'it', name: 'NIFTY IT', basePrice: 36890.15, vol: 0.0012 }
+];
+
+const NEWS_FEED = [
+  { id: 1, time: '2m ago', title: 'RBI maintains status quo on repo rate at 6.5%', source: 'Financial Express', sentiment: 'neutral' },
+  { id: 2, time: '15m ago', title: 'FIIs turn net buyers, pump ₹2,450 Cr into Indian equities', source: 'Market Daily', sentiment: 'bullish' },
+  { id: 3, time: '1h ago', title: 'Global markets jittery ahead of US Fed commentary', source: 'CNBC', sentiment: 'bearish' },
+  { id: 4, time: '2h ago', title: 'IT Sector margins expected to contract in Q4', source: 'Reuters', sentiment: 'bearish' },
+  { id: 5, time: '3h ago', title: 'Auto sales show 12% YoY growth across passenger vehicles', source: 'Bloomberg', sentiment: 'bullish' }
 ];
 
 // --- UTILS ---
 const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(val);
 
-// --- SIMULATION ENGINE (Used only if Real API fails) ---
 const generateNextPrice = (currentPrice, volatility) => {
   const drift = 0.0001;
   const shock = (Math.random() - 0.5) * 2 * volatility;
@@ -96,6 +112,7 @@ const Badge = ({ children, variant = 'neutral', className = "" }) => {
 };
 
 // --- VIEWS ---
+
 const DashboardView = ({ stocks }) => {
   const topGainers = [...stocks].sort((a, b) => b.changePct - a.changePct).slice(0, 4);
 
@@ -179,13 +196,226 @@ const DashboardView = ({ stocks }) => {
   );
 };
 
+const MarketsView = ({ indices, stocks }) => {
+  const advances = stocks.filter(s => s.changePct > 0).length;
+  const declines = stocks.filter(s => s.changePct < 0).length;
+  const total = advances + declines || 1;
+  const advanceRatio = (advances / total) * 100;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <header>
+        <h1 className="text-2xl font-semibold text-zinc-50 tracking-tight">Market Analytics</h1>
+        <p className="text-sm text-zinc-400 mt-1">Deep dive into market internals and indices.</p>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <h3 className="text-sm font-semibold text-zinc-400 mb-4">Market Breadth</h3>
+          <div className="flex justify-between items-end mb-2">
+            <div>
+              <div className="text-2xl font-bold font-mono text-emerald-400">{advances}</div>
+              <div className="text-xs text-zinc-500">Advances</div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold font-mono text-rose-400">{declines}</div>
+              <div className="text-xs text-zinc-500">Declines</div>
+            </div>
+          </div>
+          <div className="h-2 w-full bg-rose-500/20 rounded-full overflow-hidden flex">
+            <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${advanceRatio}%` }}></div>
+          </div>
+        </Card>
+
+        <Card>
+          <h3 className="text-sm font-semibold text-zinc-400 mb-4">India VIX (Vol Index)</h3>
+          <div className="flex items-end gap-3">
+            <span className="text-4xl font-bold font-mono text-zinc-50">14.25</span>
+            <span className="text-sm font-mono text-rose-400 mb-1">+2.1%</span>
+          </div>
+          <p className="text-xs text-zinc-500 mt-2">Volatility is expanding slightly.</p>
+        </Card>
+
+        <Card>
+          <h3 className="text-sm font-semibold text-zinc-400 mb-4">Institutional Flow (Est)</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-zinc-300">FII Net</span>
+              <span className="text-sm font-mono font-medium text-emerald-400">+₹1,240 Cr</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-zinc-300">DII Net</span>
+              <span className="text-sm font-mono font-medium text-rose-400">-₹450 Cr</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+      
+      <h3 className="text-lg font-semibold text-zinc-50 mt-8 mb-4">Major Indices</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {indices.map(idx => {
+          const isUp = idx.changePct >= 0;
+          return (
+            <Card key={idx.id} className="flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <div className="text-sm font-semibold text-zinc-200">{idx.name}</div>
+                  <div className="text-2xl font-bold font-mono text-zinc-50 mt-1">
+                    {idx.price.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  </div>
+                </div>
+                <Badge variant={isUp ? 'positive' : 'negative'}>
+                  {isUp ? '+' : ''}{idx.changePct.toFixed(2)}%
+                </Badge>
+              </div>
+              <Sparkline data={idx.history} color={isUp ? '#34d399' : '#fb7185'} />
+            </Card>
+          )
+        })}
+      </div>
+    </div>
+  );
+};
+
+const ScreenerView = ({ stocks }) => {
+  const [filterSector, setFilterSector] = useState('All');
+  const [search, setSearch] = useState('');
+
+  const filteredStocks = stocks.filter(s => {
+    const matchSector = filterSector === 'All' || s.sector === filterSector;
+    const matchSearch = s.sym.toLowerCase().includes(search.toLowerCase()) || s.name.toLowerCase().includes(search.toLowerCase());
+    return matchSector && matchSearch;
+  }).sort((a, b) => b.changePct - a.changePct);
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <header>
+        <h1 className="text-2xl font-semibold text-zinc-50 tracking-tight">Stock Screener</h1>
+        <p className="text-sm text-zinc-400 mt-1">Filter and analyze equity components.</p>
+      </header>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <input 
+            type="text" 
+            placeholder="Search symbol..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-white/30 transition-all"
+          />
+        </div>
+        <div className="flex gap-4">
+          <select 
+            value={filterSector} 
+            onChange={(e) => setFilterSector(e.target.value)}
+            className="bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-white/30 appearance-none min-w-[150px]"
+          >
+            <option value="All">All Sectors</option>
+            {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <Card noPadding className="overflow-hidden overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-white/5 bg-white/[0.02]">
+              <th className="py-4 px-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Symbol</th>
+              <th className="py-4 px-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">LTP</th>
+              <th className="py-4 px-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">Change</th>
+              <th className="py-4 px-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">Trend</th>
+              <th className="py-4 px-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Sector</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {filteredStocks.map((s, i) => {
+              const isUp = s.changePct >= 0;
+              return (
+                <tr key={i} className="hover:bg-white/[0.03] transition-colors group">
+                  <td className="py-3 px-5">
+                    <div className="font-semibold text-zinc-200">{s.sym}</div>
+                    <div className="text-xs text-zinc-500 mt-0.5">{s.name}</div>
+                  </td>
+                  <td className="py-3 px-5 text-right font-mono font-medium text-zinc-200">
+                    ₹{s.price.toFixed(2)}
+                  </td>
+                  <td className="py-3 px-5 text-right">
+                    <Badge variant={isUp ? 'positive' : 'negative'}>
+                      {isUp ? '+' : ''}{s.changePct.toFixed(2)}%
+                    </Badge>
+                  </td>
+                  <td className="py-3 px-5 w-48">
+                    <Sparkline data={s.history} color={isUp ? '#34d399' : '#fb7185'} className="!h-8" />
+                  </td>
+                  <td className="py-3 px-5">
+                    <span className="text-xs font-medium text-zinc-400 bg-white/5 px-2 py-1 rounded-md">{s.sector}</span>
+                  </td>
+                </tr>
+              )
+            })}
+            {filteredStocks.length === 0 && (
+              <tr>
+                <td colSpan="5" className="py-8 text-center text-zinc-500 text-sm">No equities match your filters.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+};
+
+const NewsView = () => (
+  <div className="space-y-6 animate-in fade-in duration-500">
+    <header>
+      <h1 className="text-2xl font-semibold text-zinc-50 tracking-tight">Market News</h1>
+      <p className="text-sm text-zinc-400 mt-1">Real-time feed with sentiment analysis.</p>
+    </header>
+
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-4">
+        {NEWS_FEED.map(news => {
+          const sentimentStyles = {
+            bullish: 'border-l-emerald-500 text-emerald-400 bg-emerald-500/10',
+            bearish: 'border-l-rose-500 text-rose-400 bg-rose-500/10',
+            neutral: 'border-l-zinc-500 text-zinc-400 bg-zinc-500/10'
+          };
+          return (
+            <Card key={news.id} className={`border-l-4 ${sentimentStyles[news.sentiment].split(' ')[0]} hover:bg-white/[0.02] transition-colors cursor-pointer`}>
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-xs font-mono text-zinc-500">{news.time}</span>
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${sentimentStyles[news.sentiment].split(' ').slice(1).join(' ')}`}>
+                  {news.sentiment}
+                </span>
+              </div>
+              <h3 className="text-base font-medium text-zinc-100 mb-2 leading-snug">{news.title}</h3>
+              <div className="text-xs text-zinc-500">{news.source}</div>
+            </Card>
+          )
+        })}
+      </div>
+      
+      <div className="space-y-4">
+        <Card className="bg-zinc-900 border border-white/5">
+          <h3 className="text-sm font-semibold text-zinc-50 flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-zinc-400" /> Daily Summary
+          </h3>
+          <p className="text-sm text-zinc-400 leading-relaxed">
+            Markets are trading with a positive bias today led by banking and energy stocks. Foreign institutional flows remain supportive. Watch for resistance around major index levels.
+          </p>
+        </Card>
+      </div>
+    </div>
+  </div>
+);
+
 const PortfolioView = ({ user, liveStocks }) => {
   const [portfolio, setPortfolio] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
-  // FETCH PORTFOLIO FROM FIRESTORE
   useEffect(() => {
     if (!user || !db) {
       setLoading(false);
@@ -209,14 +439,11 @@ const PortfolioView = ({ user, liveStocks }) => {
     }
   }, [user]);
 
-  // SIMULATE UPLOAD & PARSING, THEN WRITE TO FIRESTORE
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !db) return;
 
     setUploading(true);
-    
-    // Simulate API delay for parsing CAS PDF
     setTimeout(async () => {
       try {
         const mockParsedHoldings = [
@@ -231,7 +458,6 @@ const PortfolioView = ({ user, liveStocks }) => {
           const docRef = doc(portfolioRef, holding.sym);
           await setDoc(docRef, holding);
         }
-        
         setUploading(false);
       } catch (err) {
         console.error("Error saving portfolio:", err);
@@ -242,7 +468,6 @@ const PortfolioView = ({ user, liveStocks }) => {
 
   if (loading) return <div className="text-center text-zinc-500 py-20 animate-pulse">Loading secure vault...</div>;
 
-  // EMPTY STATE: Show Upload Zone
   if (portfolio.length === 0) {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
@@ -282,10 +507,9 @@ const PortfolioView = ({ user, liveStocks }) => {
     );
   }
 
-  // ACTIVE PORTFOLIO STATE
   const enrichedPortfolio = portfolio.map(p => {
     const liveStock = liveStocks.find(s => s.sym === p.sym);
-    const ltp = liveStock ? liveStock.price : (p.avg * 1.05); // Fallback pricing
+    const ltp = liveStock ? liveStock.price : (p.avg * 1.05); 
     return { ...p, ltp };
   });
 
@@ -378,47 +602,78 @@ const PortfolioView = ({ user, liveStocks }) => {
   );
 };
 
-// --- REDESIGNED CLEAN SAAS LOGIN SCREEN ---
+
+// --- ONBOARDING & LOGIN SCREENS ---
+const OnboardingScreen = ({ user, onComplete }) => {
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim() || !db) return;
+    setSaving(true);
+    try {
+      await setDoc(doc(db, 'users', user.uid), { displayName: name.trim() }, { merge: true });
+      onComplete(name.trim());
+    } catch(err) {
+      console.error(err);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md animate-in zoom-in-95 duration-500 p-8">
+         <h2 className="text-2xl font-semibold text-white mb-2 tracking-tight">Welcome to CapitalOS</h2>
+         <p className="text-zinc-400 text-sm mb-6">Let's set up your profile before you enter the terminal.</p>
+         
+         <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Display Name</label>
+              <input 
+                type="text" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Rajesh A."
+                className="w-full bg-[#0a0a0a] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-colors"
+                autoFocus
+              />
+            </div>
+            <button 
+              type="submit"
+              disabled={!name.trim() || saving}
+              className="w-full py-3 bg-white text-black font-semibold rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 mt-4"
+            >
+              {saving ? 'Initializing...' : 'Enter Dashboard'}
+            </button>
+         </form>
+      </Card>
+    </div>
+  );
+}
+
 const LoginScreen = ({ onLogin, configError }) => (
   <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-4 selection:bg-zinc-500/30">
     <div className="w-full max-w-5xl px-6 flex flex-col lg:flex-row items-center justify-between gap-16">
       
-      {/* Left Column: Hero Copy */}
       <div className="flex-1 text-center lg:text-left animate-in slide-in-from-bottom-8 duration-1000">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-white/5 text-xs font-medium text-zinc-400 mb-8">
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-          Systems Operational
-        </div>
-        
         <h1 className="text-4xl lg:text-6xl font-semibold text-white tracking-tight mb-6 leading-tight">
-          Modern tools for <br/>
-          <span className="text-zinc-500">
-            smart investors.
-          </span>
+          Modern tools for <br/><span className="text-zinc-500">smart investors.</span>
         </h1>
-        
         <p className="text-lg text-zinc-400 mb-10 max-w-xl leading-relaxed mx-auto lg:mx-0">
           Track your portfolio, analyze market trends, and optimize your wealth with our clean, unified platform.
         </p>
-        
         <div className="flex items-center justify-center lg:justify-start gap-8 text-sm text-zinc-500">
           <div className="flex flex-col gap-1.5"><strong className="text-zinc-200 text-lg">Secure</strong> Bank-grade encryption</div>
           <div className="w-px h-8 bg-white/10"></div>
           <div className="flex flex-col gap-1.5"><strong className="text-zinc-200 text-lg">Live</strong> Real-time data</div>
-          <div className="w-px h-8 bg-white/10"></div>
-          <div className="flex flex-col gap-1.5"><strong className="text-zinc-200 text-lg">Simple</strong> CAS Integration</div>
         </div>
       </div>
 
-      {/* Right Column: Clean Login Card */}
       <div className="w-full max-w-md animate-in slide-in-from-right-8 duration-1000 delay-200">
         <div className="bg-[#0a0a0a] border border-white/10 p-8 rounded-2xl shadow-xl">
-          
-          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-black font-bold text-2xl mb-6">
-            C
-          </div>
-          
-          <h2 className="text-2xl font-semibold text-white mb-2 tracking-tight">Welcome to CapitalOS</h2>
+          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-black font-bold text-2xl mb-6">C</div>
+          <h2 className="text-2xl font-semibold text-white mb-2 tracking-tight">Welcome</h2>
           <p className="text-zinc-400 text-sm mb-8 leading-relaxed">Sign in to securely connect your broker data and access the dashboard.</p>
 
           <button 
@@ -426,7 +681,7 @@ const LoginScreen = ({ onLogin, configError }) => (
             disabled={configError}
             className="w-full py-3 bg-white text-black font-semibold rounded-lg hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
-            Continue to Dashboard <ChevronRight className="w-4 h-4" />
+            Continue to App <ChevronRight className="w-4 h-4" />
           </button>
 
           {configError && (
@@ -435,10 +690,6 @@ const LoginScreen = ({ onLogin, configError }) => (
               Please paste your Firebase keys into the App.jsx file to enable authentication.
              </div>
           )}
-
-          <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-center gap-2 text-xs text-zinc-500 font-medium">
-            <ShieldCheck className="w-4 h-4 text-zinc-400" /> End-to-end encrypted
-          </div>
         </div>
       </div>
     </div>
@@ -449,23 +700,31 @@ const LoginScreen = ({ onLogin, configError }) => (
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLiveMode, setIsLiveMode] = useState(false);
   
-  // Firebase Auth State
+  // App State
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null); // Holds the Name
   const [loading, setLoading] = useState(true);
   const [configError, setConfigError] = useState(false);
+  const [apiErrorMsg, setApiErrorMsg] = useState("");
+  const [isLiveMode, setIsLiveMode] = useState(false);
 
   // Market State
   const [stocks, setStocks] = useState(() => 
     FALLBACK_STOCKS.map(s => {
       const history = generateHistory(s.basePrice, s.vol);
-      const currentPrice = history[history.length - 1];
-      return { ...s, history, price: currentPrice, changePct: ((currentPrice - s.basePrice) / s.basePrice) * 100 }
+      return { ...s, history, price: history[history.length - 1], changePct: ((history[history.length - 1] - s.basePrice) / s.basePrice) * 100 }
+    })
+  );
+  
+  const [indices, setIndices] = useState(() => 
+    INITIAL_INDICES.map(idx => {
+      const history = generateHistory(idx.basePrice, idx.vol);
+      return { ...idx, history, price: history[history.length - 1], changePct: ((history[history.length - 1] - idx.basePrice) / idx.basePrice) * 100 }
     })
   );
 
-  // 1. SETUP FIREBASE AUTHENTICATION
+  // 1. SETUP FIREBASE AUTHENTICATION & PROFILE FETCH
   useEffect(() => {
     if (!auth) {
       setConfigError(true);
@@ -473,8 +732,20 @@ export default function App() {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser && db) {
+        setUser(currentUser);
+        // Check if user has a name profile
+        try {
+          const docSnap = await getDoc(doc(db, 'users', currentUser.uid));
+          if (docSnap.exists() && docSnap.data().displayName) {
+            setUserProfile(docSnap.data());
+          }
+        } catch(e) { console.error("Error fetching profile", e); }
+      } else {
+        setUser(null);
+        setUserProfile(null);
+      }
       setLoading(false);
     });
 
@@ -483,23 +754,22 @@ export default function App() {
 
   const handleLogin = async () => {
     if (!auth) return;
-    try {
-      await signInAnonymously(auth);
-    } catch (err) {
-      console.error("Login failed:", err);
-      alert("Login failed. Check console or verify Firebase settings and ensure Anonymous sign-in is enabled in Firebase Console.");
-    }
+    try { await signInAnonymously(auth); } 
+    catch (err) { alert("Login failed. Verify Firebase settings and Anonymous auth."); }
   }
 
   // 2. FETCH LIVE PRICES (Vercel API) OR FALLBACK TO SIMULATION
   useEffect(() => {
-    if (!user) return;
+    if (!user || !userProfile) return;
     let simInterval;
 
     const fetchLivePrices = async () => {
       try {
         const res = await fetch('/api/prices');
-        if (!res.ok) throw new Error('API route not found locally');
+        if (!res.ok) {
+           setApiErrorMsg(`Backend Error (${res.status}): Make sure Vercel /api/prices.js is deployed.`);
+           throw new Error('API route failed');
+        }
         const data = await res.json();
         
         setStocks(prev => data.map(d => {
@@ -508,13 +778,20 @@ export default function App() {
           const newHistory = old ? [...old.history.slice(1), newPrice] : Array(40).fill(newPrice);
           return { ...old, ...d, price: newPrice, history: newHistory };
         }));
+        setApiErrorMsg("");
         setIsLiveMode(true);
       } catch (err) {
+        if(!apiErrorMsg) setApiErrorMsg("Local API not found. Using simulation.");
         setIsLiveMode(false);
         setStocks(prev => prev.map(s => {
           const newPrice = generateNextPrice(s.price, s.vol);
           const newHistory = [...s.history.slice(1), newPrice];
           return { ...s, price: newPrice, history: newHistory, changePct: ((newPrice - s.basePrice) / s.basePrice) * 100 };
+        }));
+        setIndices(prev => prev.map(idx => {
+          const newPrice = generateNextPrice(idx.price, idx.vol);
+          const newHistory = [...idx.history.slice(1), newPrice];
+          return { ...idx, price: newPrice, history: newHistory, changePct: ((newPrice - idx.basePrice) / idx.basePrice) * 100 };
         }));
       }
     };
@@ -524,21 +801,35 @@ export default function App() {
     simInterval = setInterval(fetchLivePrices, pollRate);
     
     return () => clearInterval(simInterval);
-  }, [user, isLiveMode]);
-
-  const handleLogout = async () => {
-    if(auth) await signOut(auth);
-    setUser(null);
-  };
+  }, [user, userProfile, isLiveMode, apiErrorMsg]);
 
   if (loading) return <div className="h-screen bg-[#050505] flex items-center justify-center"><div className="w-6 h-6 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin"></div></div>;
 
+  // Unauthenticated
   if (!user) return <LoginScreen onLogin={handleLogin} configError={configError} />;
 
+  // Authenticated but no profile (Onboarding)
+  if (user && !userProfile) return <OnboardingScreen user={user} onComplete={(name) => setUserProfile({ displayName: name })} />;
+
+  // Fully Authenticated Dashboard
   const NAV_ITEMS = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-    { id: 'portfolio', label: 'Portfolio (CAS)', icon: Briefcase },
+    { id: 'markets', label: 'Markets', icon: LineChart },
+    { id: 'screener', label: 'Screener', icon: Filter },
+    { id: 'portfolio', label: 'Portfolio', icon: Briefcase },
+    { id: 'news', label: 'News Feed', icon: Newspaper },
   ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard': return <DashboardView stocks={stocks} />;
+      case 'markets': return <MarketsView indices={indices} stocks={stocks} />;
+      case 'screener': return <ScreenerView stocks={stocks} />;
+      case 'portfolio': return <PortfolioView user={user} liveStocks={stocks} />;
+      case 'news': return <NewsView />;
+      default: return <DashboardView stocks={stocks} />;
+    }
+  };
 
   return (
     <div className="flex h-screen text-zinc-300 overflow-hidden selection:bg-zinc-500/30">
@@ -547,9 +838,7 @@ export default function App() {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#050505] border-r border-[#1a1a1a] transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-16 flex items-center px-6 border-b border-[#1a1a1a]">
           <div className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center text-black font-bold text-xl mr-3">C</div>
-          <div>
-            <div className="font-bold text-zinc-50 tracking-tight leading-none text-lg">CapitalOS</div>
-          </div>
+          <div><div className="font-bold text-zinc-50 tracking-tight leading-none text-lg">CapitalOS</div></div>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
@@ -568,12 +857,11 @@ export default function App() {
 
         <div className="p-4 border-t border-[#1a1a1a]">
           <div className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors">
-            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-400">
-              US
+            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-400 uppercase">
+              {userProfile.displayName.slice(0,2)}
             </div>
             <div className="flex-1 overflow-hidden">
-              <div className="text-sm font-medium text-zinc-200 truncate">Auth User</div>
-              <div className="text-[10px] font-mono text-zinc-500 truncate">{user.uid.slice(0,8)}</div>
+              <div className="text-sm font-medium text-zinc-200 truncate">{userProfile.displayName}</div>
             </div>
             <button onClick={handleLogout} className="text-zinc-500 hover:text-rose-400 transition-colors" title="Logout">
               <LogOut className="w-4 h-4" />
@@ -590,6 +878,11 @@ export default function App() {
             <button className="md:hidden text-zinc-400" onClick={() => setIsMobileMenuOpen(true)}>
               <Menu className="w-5 h-5" />
             </button>
+            {!isLiveMode && (
+              <div className="hidden lg:flex items-center gap-2 text-xs font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-lg">
+                <AlertCircle className="w-4 h-4" /> {apiErrorMsg}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -599,7 +892,7 @@ export default function App() {
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${isLiveMode ? 'bg-emerald-500' : 'bg-orange-500'}`}></span>
               </span>
               <span className={`text-[10px] font-bold uppercase tracking-widest ${isLiveMode ? 'text-emerald-500' : 'text-orange-500'}`}>
-                {isLiveMode ? 'Live Data' : 'Simulated Data'}
+                {isLiveMode ? 'Live Backend Connected' : 'Simulated Data Active'}
               </span>
             </div>
           </div>
@@ -607,7 +900,7 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth pb-24">
           <div className="max-w-7xl mx-auto">
-             {activeTab === 'dashboard' ? <DashboardView stocks={stocks} /> : <PortfolioView user={user} liveStocks={stocks} />}
+             {renderContent()}
           </div>
         </main>
 
