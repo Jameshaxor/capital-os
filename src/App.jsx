@@ -3,7 +3,9 @@ import {
   LayoutDashboard, LineChart, Briefcase, Search,
   Zap, Newspaper, Settings, Bell, Command,
   TrendingUp, TrendingDown, Activity, ShieldCheck, 
-  ChevronRight, Menu, X, Filter, ArrowUpDown, LogOut, UploadCloud, FileText, CheckCircle, AlertCircle
+  ChevronRight, Menu, X, Filter, ArrowUpDown, LogOut, 
+  UploadCloud, FileText, CheckCircle, AlertCircle,
+  Star, Landmark, Calculator, PieChart, Info
 } from 'lucide-react';
 
 // FIREBASE IMPORTS
@@ -56,8 +58,27 @@ const NEWS_FEED = [
   { id: 5, time: '3h ago', title: 'Auto sales show 12% YoY growth across passenger vehicles', source: 'Bloomberg', sentiment: 'bullish' }
 ];
 
+const MUTUAL_FUNDS = [
+  { name: 'Parag Parikh Flexi Cap Fund', house: 'PPFAS', rating: 5, nav: 68.45, ret1y: 28.4, ret3y: 22.1, aum: '48,200 Cr', risk: 'Moderate' },
+  { name: 'Mirae Asset Large Cap Fund', house: 'Mirae Asset', rating: 5, nav: 92.30, ret1y: 18.2, ret3y: 16.8, aum: '38,500 Cr', risk: 'Moderate' },
+  { name: 'SBI Small Cap Fund', house: 'SBI MF', rating: 4, nav: 156.78, ret1y: 35.6, ret3y: 28.9, aum: '22,300 Cr', risk: 'High' },
+  { name: 'Axis Bluechip Fund', house: 'Axis MF', rating: 4, nav: 48.90, ret1y: 14.5, ret3y: 12.8, aum: '34,100 Cr', risk: 'Low' },
+  { name: 'HDFC Mid-Cap Opportunities', house: 'HDFC MF', rating: 5, nav: 134.56, ret1y: 42.3, ret3y: 26.7, aum: '42,800 Cr', risk: 'High' }
+];
+
+const TAX_INSTRUMENTS = [
+  { name: 'ELSS Mutual Funds', section: '80C', limit: 150000, invested: 120000, icon: '📈', returns: '12-15% p.a.' },
+  { name: 'PPF', section: '80C', limit: 150000, invested: 50000, icon: '🏦', returns: '7.1% p.a.' },
+  { name: 'Health Insurance', section: '80D', limit: 75000, invested: 25000, icon: '🏥', returns: 'Tax Saving' },
+];
+
 // --- UTILS ---
 const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(val);
+const formatLakhs = (val) => {
+  if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
+  if (val >= 100000) return `₹${(val / 100000).toFixed(2)} L`;
+  return formatCurrency(val);
+};
 
 const generateNextPrice = (currentPrice, volatility) => {
   const drift = 0.0001;
@@ -103,6 +124,7 @@ const Badge = ({ children, variant = 'neutral', className = "" }) => {
     positive: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
     negative: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
     neutral: 'bg-zinc-800 text-zinc-300 border border-zinc-700',
+    warning: 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
   };
   return (
     <span className={`px-2 py-0.5 rounded text-xs font-semibold tracking-wide font-mono ${styles[variant]} ${className}`}>
@@ -366,6 +388,291 @@ const ScreenerView = ({ stocks }) => {
   );
 };
 
+const WatchlistView = ({ stocks }) => {
+  // Using a mock watchlist derived from first 3 stocks
+  const watchlisted = stocks.slice(0,3);
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <header className="flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-50 tracking-tight">Watchlist</h1>
+          <p className="text-sm text-zinc-400 mt-1">Track your favorite equities.</p>
+        </div>
+        <button className="text-sm bg-white text-black px-4 py-2.5 rounded-lg font-semibold hover:bg-zinc-200 transition-colors flex items-center gap-2">
+          <Search className="w-4 h-4"/> Add Symbol
+        </button>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {watchlisted.map((s, i) => {
+          const isUp = s.changePct >= 0;
+          return (
+            <Card key={i} className="hover:border-white/10 transition-colors">
+               <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center font-bold text-zinc-300">
+                        {s.sym.slice(0,2)}
+                     </div>
+                     <div>
+                        <div className="font-semibold text-zinc-100">{s.sym}</div>
+                        <div className="text-xs text-zinc-500">{s.name}</div>
+                     </div>
+                  </div>
+                  <button className="text-zinc-500 hover:text-rose-400 transition-colors">
+                     <X className="w-4 h-4" />
+                  </button>
+               </div>
+               
+               <div className="mb-4">
+                 <div className="text-3xl font-bold font-mono text-zinc-50 tracking-tight mb-1">
+                    {formatCurrency(s.price)}
+                 </div>
+                 <div className={`text-sm font-mono font-medium ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {isUp ? '+' : ''}{s.changePct.toFixed(2)}%
+                 </div>
+               </div>
+               
+               <Sparkline data={s.history} color={isUp ? '#34d399' : '#fb7185'} className="!h-16 mb-4" />
+
+               <div className="grid grid-cols-2 gap-2 mt-4">
+                  <button className="py-2 bg-emerald-500/10 text-emerald-400 font-semibold rounded-lg hover:bg-emerald-500/20 transition-colors text-sm">
+                    Buy
+                  </button>
+                  <button className="py-2 bg-rose-500/10 text-rose-400 font-semibold rounded-lg hover:bg-rose-500/20 transition-colors text-sm">
+                    Sell
+                  </button>
+               </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const MutualFundsView = () => {
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <header>
+        <h1 className="text-2xl font-semibold text-zinc-50 tracking-tight">Mutual Funds</h1>
+        <p className="text-sm text-zinc-400 mt-1">Research and invest in top-rated funds.</p>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {MUTUAL_FUNDS.map((f, i) => {
+          const riskCls = f.risk === 'High' ? 'negative' : f.risk === 'Moderate' ? 'warning' : 'positive';
+          return (
+            <Card key={i} className="hover:border-white/10 transition-colors flex flex-col justify-between">
+              <div>
+                <div className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-2">{f.house}</div>
+                <div className="text-lg font-semibold text-zinc-100 leading-tight mb-3">{f.name}</div>
+                
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="flex text-orange-400">
+                    {[...Array(5)].map((_, idx) => (
+                      <Star key={idx} className={`w-3.5 h-3.5 ${idx < f.rating ? 'fill-current' : 'text-zinc-700'}`} />
+                    ))}
+                  </div>
+                  <Badge variant={riskCls}>{f.risk} Risk</Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <div className="text-xs text-zinc-500 mb-1">NAV</div>
+                    <div className="font-mono font-semibold text-zinc-200">₹{f.nav}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-zinc-500 mb-1">AUM</div>
+                    <div className="font-mono font-semibold text-zinc-200">{f.aum}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 p-3 bg-white/5 rounded-xl border border-white/5 mb-6 text-center">
+                   <div>
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-1">1Y Return</div>
+                      <div className="font-mono text-emerald-400 font-bold">+{f.ret1y}%</div>
+                   </div>
+                   <div>
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-1">3Y Return</div>
+                      <div className="font-mono text-emerald-400 font-bold">+{f.ret3y}%</div>
+                   </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <button className="flex-1 py-2.5 bg-white text-black font-semibold rounded-lg hover:bg-zinc-200 transition-colors text-sm">
+                  Invest Now
+                </button>
+                <button className="flex-1 py-2.5 bg-zinc-900 border border-white/10 text-zinc-300 font-semibold rounded-lg hover:bg-zinc-800 transition-colors text-sm">
+                  Details
+                </button>
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+const TaxPlannerView = () => {
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <header>
+        <h1 className="text-2xl font-semibold text-zinc-50 tracking-tight">Tax Planner</h1>
+        <p className="text-sm text-zinc-400 mt-1">Optimize your tax deductions for FY 2024-25.</p>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="flex flex-col items-center justify-center text-center">
+          <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mb-4">
+             <Briefcase className="w-6 h-6" />
+          </div>
+          <div className="text-sm text-zinc-500 font-semibold uppercase tracking-wider mb-1">Total Deductions</div>
+          <div className="text-3xl font-bold font-mono text-zinc-50">₹1,95,000</div>
+        </Card>
+        <Card className="flex flex-col items-center justify-center text-center">
+          <div className="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center mb-4">
+             <ShieldCheck className="w-6 h-6" />
+          </div>
+          <div className="text-sm text-zinc-500 font-semibold uppercase tracking-wider mb-1">Estimated Tax Saved</div>
+          <div className="text-3xl font-bold font-mono text-zinc-50">₹58,500</div>
+        </Card>
+        <Card className="flex flex-col items-center justify-center text-center border-orange-500/30 bg-orange-500/5">
+          <div className="w-12 h-12 bg-orange-500/10 text-orange-400 rounded-full flex items-center justify-center mb-4">
+             <Zap className="w-6 h-6" />
+          </div>
+          <div className="text-sm text-orange-500/80 font-semibold uppercase tracking-wider mb-1">More Savings Possible</div>
+          <div className="text-3xl font-bold font-mono text-orange-400">₹80,000</div>
+        </Card>
+      </div>
+
+      <h3 className="text-lg font-semibold text-zinc-50 mt-8 mb-4">Tax Saving Instruments</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {TAX_INSTRUMENTS.map((t, i) => {
+          const pct = Math.min((t.invested / t.limit) * 100, 100);
+          const isFull = pct >= 100;
+          return (
+            <Card key={i}>
+              <div className="flex items-center gap-4 mb-4">
+                 <div className="text-3xl bg-zinc-900 p-2 rounded-xl border border-white/5">{t.icon}</div>
+                 <div>
+                   <div className="font-semibold text-zinc-100">{t.name}</div>
+                   <div className="text-xs text-zinc-500 font-medium mt-0.5">Section {t.section}</div>
+                 </div>
+              </div>
+              
+              <div className="flex justify-between text-sm mb-2 font-mono">
+                 <span className="text-zinc-300">Invested: ₹{(t.invested/1000).toFixed(0)}k</span>
+                 <span className="text-zinc-500">Limit: ₹{(t.limit/1000).toFixed(0)}k</span>
+              </div>
+              
+              <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden mb-3">
+                 <div className={`h-full ${isFull ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{width: `${pct}%`}}></div>
+              </div>
+              
+              <div className="flex justify-between text-xs text-zinc-500 font-medium">
+                 <span>{pct.toFixed(0)}% utilized</span>
+                 <span>Est. {t.returns}</span>
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+    </div>
+  );
+};
+
+const CalculatorView = () => {
+  const [sip, setSip] = useState(25000);
+  const [years, setYears] = useState(10);
+  const [rate, setRate] = useState(12);
+
+  // SIP Math: M * (((1 + i)^n - 1) / i) * (1 + i)
+  const monthlyRate = rate / 100 / 12;
+  const months = years * 12;
+  const futureValue = sip * (((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate));
+  const totalInvested = sip * months;
+  const wealthGained = futureValue - totalInvested;
+
+  // Generate chart data
+  const chartData = [];
+  let currentVal = 0;
+  for(let y=1; y<=years; y++) {
+      const m = y * 12;
+      currentVal = sip * (((Math.pow(1 + monthlyRate, m) - 1) / monthlyRate) * (1 + monthlyRate));
+      chartData.push(currentVal);
+  }
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <header>
+        <h1 className="text-2xl font-semibold text-zinc-50 tracking-tight">Financial Calculators</h1>
+        <p className="text-sm text-zinc-400 mt-1">Plan your SIP investments.</p>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card>
+           <h3 className="text-lg font-semibold text-zinc-100 mb-6">SIP Parameters</h3>
+           
+           <div className="space-y-6">
+              <div>
+                 <div className="flex justify-between mb-2">
+                    <label className="text-sm font-medium text-zinc-400">Monthly Investment</label>
+                    <span className="font-mono text-zinc-200">₹{sip.toLocaleString()}</span>
+                 </div>
+                 <input type="range" min="1000" max="100000" step="1000" value={sip} onChange={e=>setSip(Number(e.target.value))} className="w-full accent-blue-500" />
+              </div>
+              
+              <div>
+                 <div className="flex justify-between mb-2">
+                    <label className="text-sm font-medium text-zinc-400">Investment Period</label>
+                    <span className="font-mono text-zinc-200">{years} Years</span>
+                 </div>
+                 <input type="range" min="1" max="30" step="1" value={years} onChange={e=>setYears(Number(e.target.value))} className="w-full" />
+              </div>
+              
+              <div>
+                 <div className="flex justify-between mb-2">
+                    <label className="text-sm font-medium text-zinc-400">Expected Return (p.a)</label>
+                    <span className="font-mono text-zinc-200">{rate}%</span>
+                 </div>
+                 <input type="range" min="5" max="25" step="0.5" value={rate} onChange={e=>setRate(Number(e.target.value))} className="w-full" />
+              </div>
+           </div>
+        </Card>
+
+        <Card className="flex flex-col">
+           <h3 className="text-lg font-semibold text-zinc-100 mb-6">Projection</h3>
+           
+           <div className="text-center mb-8">
+              <div className="text-sm text-zinc-500 uppercase tracking-wider font-semibold mb-2">Future Value</div>
+              <div className="text-5xl font-bold font-mono text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+                {formatLakhs(futureValue)}
+              </div>
+           </div>
+
+           <div className="flex justify-around mb-8 border-t border-white/5 pt-6">
+              <div className="text-center">
+                 <div className="text-xs text-zinc-500 mb-1">Invested Amount</div>
+                 <div className="font-mono font-medium text-zinc-200">{formatLakhs(totalInvested)}</div>
+              </div>
+              <div className="text-center">
+                 <div className="text-xs text-zinc-500 mb-1">Wealth Gained</div>
+                 <div className="font-mono font-medium text-emerald-400">+{formatLakhs(wealthGained)}</div>
+              </div>
+           </div>
+
+           <div className="mt-auto">
+              <Sparkline data={chartData} color="#3b82f6" className="!h-24" />
+           </div>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
 const NewsView = () => (
   <div className="space-y-6 animate-in fade-in duration-500">
     <header>
@@ -441,7 +748,21 @@ const PortfolioView = ({ user, liveStocks }) => {
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (!file || !db) return;
+    if (!file || !db) {
+      // If DB is offline (mock mode), just simulate setting a mock state locally
+      if(!db) {
+         setUploading(true);
+         setTimeout(() => {
+           setPortfolio([
+            { sym: 'RELIANCE', qty: 50, avg: 2650 },
+            { sym: 'HDFCBANK', qty: 100, avg: 1520 },
+            { sym: 'TCS', qty: 30, avg: 3950 }
+           ]);
+           setUploading(false);
+         }, 1500);
+      }
+      return;
+    }
 
     setUploading(true);
     setTimeout(async () => {
@@ -602,7 +923,6 @@ const PortfolioView = ({ user, liveStocks }) => {
   );
 };
 
-
 // --- ONBOARDING & LOGIN SCREENS ---
 const OnboardingScreen = ({ user, onComplete }) => {
   const [name, setName] = useState("");
@@ -610,15 +930,18 @@ const OnboardingScreen = ({ user, onComplete }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !db) return;
+    if (!name.trim()) return;
     setSaving(true);
     try {
-      await setDoc(doc(db, 'users', user.uid), { displayName: name.trim() }, { merge: true });
-      onComplete(name.trim());
+      // Allow bypass if db is not initialized (Firebase keys missing)
+      if (db) {
+         await setDoc(doc(db, 'users', user.uid), { displayName: name.trim() }, { merge: true });
+      }
     } catch(err) {
-      console.error(err);
-      setSaving(false);
+      console.warn("DB not connected, proceeding locally.", err);
     }
+    // Proceed to Dashboard regardless of DB connection for demo purposes
+    onComplete(name.trim());
   };
 
   return (
@@ -667,6 +990,8 @@ const LoginScreen = ({ onLogin, configError }) => (
           <div className="flex flex-col gap-1.5"><strong className="text-zinc-200 text-lg">Secure</strong> Bank-grade encryption</div>
           <div className="w-px h-8 bg-white/10"></div>
           <div className="flex flex-col gap-1.5"><strong className="text-zinc-200 text-lg">Live</strong> Real-time data</div>
+          <div className="w-px h-8 bg-white/10"></div>
+          <div className="flex flex-col gap-1.5"><strong className="text-zinc-200 text-lg">CAS Sync</strong> Auto-track holdings</div>
         </div>
       </div>
 
@@ -674,7 +999,7 @@ const LoginScreen = ({ onLogin, configError }) => (
         <div className="bg-[#0a0a0a] border border-white/10 p-8 rounded-2xl shadow-xl">
           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-black font-bold text-2xl mb-6">C</div>
           <h2 className="text-2xl font-semibold text-white mb-2 tracking-tight">Welcome</h2>
-          <p className="text-zinc-400 text-sm mb-8 leading-relaxed">Sign in to securely connect your broker data and access the dashboard.</p>
+          <p className="text-zinc-400 text-sm mb-8 leading-relaxed">Sign in to securely connect your broker data via CAS and access the dashboard.</p>
 
           <button 
             onClick={onLogin}
@@ -696,14 +1021,66 @@ const LoginScreen = ({ onLogin, configError }) => (
   </div>
 );
 
+// --- COMMAND PALETTE OVERLAY ---
+const CommandPalette = ({ isOpen, onClose, navItems, onNavigate }) => {
+  const [search, setSearch] = useState("");
+  
+  useEffect(() => {
+    if(!isOpen) setSearch("");
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const filteredNav = navItems.filter(n => n.label.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[15vh] p-4" onClick={onClose}>
+       <div className="w-full max-w-xl bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e=>e.stopPropagation()}>
+          <div className="flex items-center px-4 border-b border-white/10">
+             <Search className="w-5 h-5 text-zinc-500" />
+             <input 
+               type="text"
+               autoFocus
+               placeholder="Search modules..."
+               value={search}
+               onChange={(e) => setSearch(e.target.value)}
+               className="w-full bg-transparent border-none text-white px-4 py-4 focus:outline-none"
+             />
+             <span className="text-xs text-zinc-500 border border-white/10 rounded px-2 py-1">ESC</span>
+          </div>
+          <div className="max-h-80 overflow-y-auto p-2">
+             <div className="px-3 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Navigation</div>
+             {filteredNav.map((item, i) => (
+                <button 
+                  key={i}
+                  onClick={() => { onNavigate(item.id); onClose(); }}
+                  className="w-full flex items-center gap-3 px-3 py-3 hover:bg-white/5 rounded-xl text-left transition-colors"
+                >
+                   <item.icon className="w-5 h-5 text-zinc-400" />
+                   <div>
+                      <div className="text-sm font-medium text-zinc-200">{item.label}</div>
+                      <div className="text-xs text-zinc-500">Go to {item.label} view</div>
+                   </div>
+                </button>
+             ))}
+             {filteredNav.length === 0 && (
+                <div className="p-4 text-center text-sm text-zinc-500">No results found.</div>
+             )}
+          </div>
+       </div>
+    </div>
+  )
+};
+
 // --- MAIN APP COMPONENT ---
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   
   // App State
   const [user, setUser] = useState(null);
-  const [userProfile, setUserProfile] = useState(null); // Holds the Name
+  const [userProfile, setUserProfile] = useState(null); 
   const [loading, setLoading] = useState(true);
   const [configError, setConfigError] = useState(false);
   const [apiErrorMsg, setApiErrorMsg] = useState("");
@@ -727,21 +1104,23 @@ export default function App() {
   // 1. SETUP FIREBASE AUTHENTICATION & PROFILE FETCH
   useEffect(() => {
     if (!auth) {
+      // Config is empty, proceed to mock mode
       setConfigError(true);
       setLoading(false);
       return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser && db) {
+      if (currentUser) {
         setUser(currentUser);
-        // Check if user has a name profile
-        try {
-          const docSnap = await getDoc(doc(db, 'users', currentUser.uid));
-          if (docSnap.exists() && docSnap.data().displayName) {
-            setUserProfile(docSnap.data());
-          }
-        } catch(e) { console.error("Error fetching profile", e); }
+        if (db) {
+           try {
+             const docSnap = await getDoc(doc(db, 'users', currentUser.uid));
+             if (docSnap.exists() && docSnap.data().displayName) {
+               setUserProfile(docSnap.data());
+             }
+           } catch(e) { console.error("Error fetching profile", e); }
+        }
       } else {
         setUser(null);
         setUserProfile(null);
@@ -750,6 +1129,19 @@ export default function App() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Global Keyboard Shortcut for Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+      if (e.key === 'Escape') setIsCommandPaletteOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const handleLogin = async () => {
@@ -803,6 +1195,12 @@ export default function App() {
     return () => clearInterval(simInterval);
   }, [user, userProfile, isLiveMode, apiErrorMsg]);
 
+  const handleLogout = async () => {
+    if(auth) await signOut(auth);
+    setUser(null);
+    setUserProfile(null);
+  };
+
   if (loading) return <div className="h-screen bg-[#050505] flex items-center justify-center"><div className="w-6 h-6 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin"></div></div>;
 
   // Unauthenticated
@@ -817,6 +1215,10 @@ export default function App() {
     { id: 'markets', label: 'Markets', icon: LineChart },
     { id: 'screener', label: 'Screener', icon: Filter },
     { id: 'portfolio', label: 'Portfolio', icon: Briefcase },
+    { id: 'mutualfunds', label: 'Mutual Funds', icon: Landmark },
+    { id: 'watchlist', label: 'Watchlist', icon: Star },
+    { id: 'calculator', label: 'Calculators', icon: Calculator },
+    { id: 'tax', label: 'Tax Planner', icon: PieChart },
     { id: 'news', label: 'News Feed', icon: Newspaper },
   ];
 
@@ -826,6 +1228,10 @@ export default function App() {
       case 'markets': return <MarketsView indices={indices} stocks={stocks} />;
       case 'screener': return <ScreenerView stocks={stocks} />;
       case 'portfolio': return <PortfolioView user={user} liveStocks={stocks} />;
+      case 'watchlist': return <WatchlistView stocks={stocks} />;
+      case 'mutualfunds': return <MutualFundsView />;
+      case 'calculator': return <CalculatorView />;
+      case 'tax': return <TaxPlannerView />;
       case 'news': return <NewsView />;
       default: return <DashboardView stocks={stocks} />;
     }
@@ -834,6 +1240,14 @@ export default function App() {
   return (
     <div className="flex h-screen text-zinc-300 overflow-hidden selection:bg-zinc-500/30">
       
+      {/* COMMAND PALETTE */}
+      <CommandPalette 
+        isOpen={isCommandPaletteOpen} 
+        onClose={() => setIsCommandPaletteOpen(false)}
+        navItems={NAV_ITEMS}
+        onNavigate={setActiveTab}
+      />
+
       {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#050505] border-r border-[#1a1a1a] transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-16 flex items-center px-6 border-b border-[#1a1a1a]">
@@ -842,7 +1256,7 @@ export default function App() {
         </div>
 
         <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
-          <div className="px-3 text-xs font-medium text-zinc-500 mb-3 mt-4 first:mt-0">Menu</div>
+          <div className="px-3 text-xs font-medium text-zinc-500 mb-3 mt-4 first:mt-0">Modules</div>
           {NAV_ITEMS.map(item => (
             <button
               key={item.id}
@@ -878,14 +1292,24 @@ export default function App() {
             <button className="md:hidden text-zinc-400" onClick={() => setIsMobileMenuOpen(true)}>
               <Menu className="w-5 h-5" />
             </button>
-            {!isLiveMode && (
-              <div className="hidden lg:flex items-center gap-2 text-xs font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-lg">
-                <AlertCircle className="w-4 h-4" /> {apiErrorMsg}
+            <div 
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg cursor-pointer hover:border-zinc-700 transition-colors w-64 group"
+            >
+              <Search className="w-4 h-4 text-zinc-500 group-hover:text-zinc-400" />
+              <span className="text-sm text-zinc-500 group-hover:text-zinc-400">Search modules...</span>
+              <div className="ml-auto flex items-center gap-1 text-[10px] font-medium text-zinc-600 font-mono">
+                <Command className="w-3 h-3" /> K
               </div>
-            )}
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
+             {!isLiveMode && (
+              <div className="hidden lg:flex items-center gap-2 text-xs font-medium text-zinc-400">
+                <Info className="w-4 h-4" /> {apiErrorMsg}
+              </div>
+            )}
             <div className={`hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-full border ${isLiveMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-orange-500/10 border-orange-500/20'}`}>
               <span className="relative flex h-2 w-2">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isLiveMode ? 'bg-emerald-400' : 'bg-orange-400'}`}></span>
