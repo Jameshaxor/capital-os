@@ -95,7 +95,7 @@ const generateHistory = (basePrice, volatility, points = 40) => {
 
 // --- GEMINI AI INTEGRATION (REAL DATA FETCH) ---
 const fetchRealMarketDataFromAI = async () => {
-  const apiKey = ""; // Provided globally by execution environment
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY; // Provided globally by execution environment
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
   
   const prompt = `Search the web for the absolute latest, real-time stock prices (in INR) and percentage changes for today in the Indian Stock Market.
