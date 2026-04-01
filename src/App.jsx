@@ -12,7 +12,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from 'firebas
 import { getFirestore, collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 // --- FIREBASE INITIALIZATION ---
-// PASTE YOUR FIREBASE CONFIG KEYS HERE
+// PASTE YOUR FIREBASE CONFIG KEYS HERE BEFORE COMMITTING!
 const firebaseConfig = {
   apiKey: "AIzaSyCw2rNU1drpsUidujbQMIIfLuQ6LmZcgxo",
   authDomain: "capitalos-f34f6.firebaseapp.com",
@@ -102,8 +102,8 @@ const DashboardView = ({ stocks }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header>
-        <h1 className="text-2xl font-semibold text-zinc-50 tracking-tight">Command Center</h1>
-        <p className="text-sm text-zinc-400 mt-1">Market overview for {new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+        <h1 className="text-2xl font-semibold text-zinc-50 tracking-tight">Overview</h1>
+        <p className="text-sm text-zinc-400 mt-1">Market snapshot for {new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
       </header>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -131,7 +131,7 @@ const DashboardView = ({ stocks }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-semibold text-zinc-50">Quantitative Sector Heatmap</h3>
+            <h3 className="text-sm font-semibold text-zinc-50">Sector Heatmap</h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {SECTORS.map((sectorName, i) => {
@@ -156,7 +156,7 @@ const DashboardView = ({ stocks }) => {
         <Card noPadding>
           <div className="p-4 border-b border-white/5">
             <h3 className="text-sm font-semibold text-zinc-50 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-emerald-400" /> Momentum Leaders
+              <TrendingUp className="w-4 h-4 text-emerald-400" /> Top Movers
             </h3>
           </div>
           <div className="divide-y divide-white/5">
@@ -222,7 +222,8 @@ const PortfolioView = ({ user, liveStocks }) => {
         const mockParsedHoldings = [
           { sym: 'RELIANCE', qty: 50, avg: 2650 },
           { sym: 'HDFCBANK', qty: 100, avg: 1520 },
-          { sym: 'TCS', qty: 30, avg: 3950 }
+          { sym: 'TCS', qty: 30, avg: 3950 },
+          { sym: 'INFY', qty: 120, avg: 1400 }
         ];
 
         const portfolioRef = collection(db, 'users', user.uid, 'portfolio');
@@ -250,31 +251,31 @@ const PortfolioView = ({ user, liveStocks }) => {
           <p className="text-sm text-zinc-400 mt-1">Connect your broker securely via CAS.</p>
         </header>
 
-        <Card className="flex flex-col items-center justify-center py-16 text-center border-dashed border-2 border-zinc-800 bg-zinc-900/20">
-          <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-4 border border-blue-500/20">
+        <Card className="flex flex-col items-center justify-center py-20 text-center border border-zinc-800 bg-zinc-900/10">
+          <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-6 border border-zinc-700">
             {uploading ? (
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-6 h-6 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin"></div>
             ) : (
-              <UploadCloud className="w-8 h-8 text-blue-400" />
+              <UploadCloud className="w-8 h-8 text-zinc-400" />
             )}
           </div>
-          <h2 className="text-xl font-semibold text-zinc-100 mb-2">
-            {uploading ? "Decrypting & Parsing CAS..." : "Sync Your Portfolio"}
+          <h2 className="text-xl font-semibold text-zinc-100 mb-3">
+            {uploading ? "Syncing Portfolio..." : "Sync Your Portfolio"}
           </h2>
-          <p className="text-zinc-400 max-w-md mx-auto mb-8 text-sm">
-            {uploading ? "Extracting stocks and mutual funds. Securing to Firestore..." : "Upload your CAMS/KFintech Consolidated Account Statement (CAS) PDF. We extract your holdings securely without requiring your broker passwords."}
+          <p className="text-zinc-400 max-w-lg mx-auto mb-8 text-sm leading-relaxed">
+            {uploading ? "Extracting your holdings and saving them to your secure account..." : "Upload your CAMS/KFintech Consolidated Account Statement (CAS) PDF. We'll track your holdings securely without requiring your broker passwords."}
           </p>
           
           {!uploading && (
             <div className="flex gap-4">
               <input type="file" ref={fileInputRef} className="hidden" accept=".pdf" onChange={handleFileUpload} />
-              <button onClick={() => fileInputRef.current?.click()} className="px-6 py-3 bg-zinc-100 text-black font-semibold rounded-xl hover:bg-white transition-colors flex items-center gap-2">
+              <button onClick={() => fileInputRef.current?.click()} className="px-6 py-3 bg-white text-black font-semibold rounded-lg hover:bg-zinc-200 transition-colors flex items-center gap-2">
                 <FileText className="w-4 h-4" /> Upload CAS PDF
               </button>
             </div>
           )}
-          <p className="text-[10px] text-zinc-600 mt-6 uppercase tracking-widest font-semibold flex items-center gap-1">
-            <ShieldCheck className="w-3 h-3" /> Bank-grade encryption • Data never leaves your account
+          <p className="text-xs text-zinc-600 mt-8 font-medium flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-zinc-500" /> End-to-end encrypted. Data stays yours.
           </p>
         </Card>
       </div>
@@ -299,10 +300,10 @@ const PortfolioView = ({ user, liveStocks }) => {
       <header className="flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-50 tracking-tight">Portfolio</h1>
-          <p className="text-sm text-zinc-400 mt-1 flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-400"/> Synced via CAS Secure Vault</p>
+          <p className="text-sm text-zinc-400 mt-1 flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-emerald-400"/> Synced via CAS Secure Vault</p>
         </div>
-        <button onClick={() => fileInputRef.current?.click()} className="text-sm bg-zinc-900 border border-white/10 px-4 py-2 rounded-xl text-zinc-300 hover:text-white transition-colors">
-          Re-Sync Portfolio
+        <button onClick={() => fileInputRef.current?.click()} className="text-sm bg-zinc-900 border border-white/10 px-4 py-2.5 rounded-lg text-zinc-300 hover:text-white transition-colors flex items-center gap-2">
+          <UploadCloud className="w-4 h-4"/> Re-Sync Portfolio
         </button>
         <input type="file" ref={fileInputRef} className="hidden" accept=".pdf" onChange={handleFileUpload} />
       </header>
@@ -310,20 +311,20 @@ const PortfolioView = ({ user, liveStocks }) => {
       <Card className="flex flex-col justify-between">
         <div>
           <div className="text-sm font-medium text-zinc-400 mb-1">Total Equity Value</div>
-          <div className="text-4xl font-bold font-mono text-zinc-50 tracking-tight">
+          <div className="text-5xl font-bold font-mono text-zinc-50 tracking-tight">
             {formatCurrency(currentValue)}
           </div>
         </div>
-        <div className="flex gap-8 mt-8 border-t border-white/5 pt-6">
+        <div className="flex gap-10 mt-10 border-t border-white/5 pt-6">
           <div>
-            <div className="text-xs text-zinc-500 mb-1">Invested Amount</div>
-            <div className="text-lg font-mono font-medium text-zinc-300">{formatCurrency(totalInvested)}</div>
+            <div className="text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-semibold">Invested Amount</div>
+            <div className="text-xl font-mono font-medium text-zinc-300">{formatCurrency(totalInvested)}</div>
           </div>
           <div>
-            <div className="text-xs text-zinc-500 mb-1">Total Returns</div>
-            <div className={`text-lg font-mono font-medium flex items-center gap-2 ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <div className="text-xs text-zinc-500 mb-1.5 uppercase tracking-wider font-semibold">Total Returns</div>
+            <div className={`text-xl font-mono font-medium flex items-center gap-2 ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
               {isUp ? '+' : ''}{formatCurrency(totalPnL)}
-              <Badge variant={isUp ? 'positive' : 'negative'} className="ml-1">
+              <Badge variant={isUp ? 'positive' : 'negative'} className="ml-2 text-sm px-2.5 py-1">
                 {isUp ? '+' : ''}{pnlPercent.toFixed(2)}%
               </Badge>
             </div>
@@ -335,11 +336,11 @@ const PortfolioView = ({ user, liveStocks }) => {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-white/5 bg-white/[0.01]">
-              <th className="py-4 px-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Asset</th>
-              <th className="py-4 px-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">Qty</th>
-              <th className="py-4 px-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">Avg. Cost</th>
-              <th className="py-4 px-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">LTP (Live)</th>
-              <th className="py-4 px-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">Returns</th>
+              <th className="py-4 px-6 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Asset</th>
+              <th className="py-4 px-6 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">Qty</th>
+              <th className="py-4 px-6 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">Avg. Cost</th>
+              <th className="py-4 px-6 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">LTP (Live)</th>
+              <th className="py-4 px-6 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">Returns</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -352,20 +353,20 @@ const PortfolioView = ({ user, liveStocks }) => {
 
               return (
                 <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
-                  <td className="py-4 px-5">
-                    <div className="font-semibold text-zinc-200">{p.sym}</div>
+                  <td className="py-4 px-6">
+                    <div className="font-semibold text-zinc-200 text-base">{p.sym}</div>
                   </td>
-                  <td className="py-4 px-5 text-right font-mono text-sm text-zinc-300">{p.qty}</td>
-                  <td className="py-4 px-5 text-right font-mono text-sm text-zinc-300">₹{p.avg.toFixed(2)}</td>
-                  <td className="py-4 px-5 text-right font-mono text-sm font-medium text-zinc-200">
+                  <td className="py-4 px-6 text-right font-mono text-sm text-zinc-300">{p.qty}</td>
+                  <td className="py-4 px-6 text-right font-mono text-sm text-zinc-300">₹{p.avg.toFixed(2)}</td>
+                  <td className="py-4 px-6 text-right font-mono text-base font-medium text-zinc-100">
                     <span className="animate-pulse mr-2 text-emerald-400/50">●</span>
                     ₹{p.ltp.toFixed(2)}
                   </td>
-                  <td className="py-4 px-5 text-right font-mono">
+                  <td className="py-4 px-6 text-right font-mono">
                     <div className={`text-sm font-medium ${pIsUp ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {pIsUp ? '+' : ''}₹{pl.toFixed(2)}
                     </div>
-                    <div className="text-xs text-zinc-500 mt-0.5">{pIsUp ? '+' : ''}{plPct.toFixed(2)}%</div>
+                    <div className="text-xs text-zinc-500 mt-1">{pIsUp ? '+' : ''}{plPct.toFixed(2)}%</div>
                   </td>
                 </tr>
               )
@@ -377,37 +378,69 @@ const PortfolioView = ({ user, liveStocks }) => {
   );
 };
 
-// --- AUTHENTICATION SCREEN ---
+// --- REDESIGNED CLEAN SAAS LOGIN SCREEN ---
 const LoginScreen = ({ onLogin, configError }) => (
-  <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center p-4 selection:bg-blue-500/30">
-    <div className="w-full max-w-md">
-      <div className="text-center mb-10 animate-in slide-in-from-bottom-4 duration-700">
-        <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center text-black font-bold text-3xl mx-auto shadow-2xl shadow-white/10 mb-6">
-          C
+  <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-4 selection:bg-zinc-500/30">
+    <div className="w-full max-w-5xl px-6 flex flex-col lg:flex-row items-center justify-between gap-16">
+      
+      {/* Left Column: Hero Copy */}
+      <div className="flex-1 text-center lg:text-left animate-in slide-in-from-bottom-8 duration-1000">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-white/5 text-xs font-medium text-zinc-400 mb-8">
+          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          Systems Operational
         </div>
-        <h1 className="text-4xl font-bold text-zinc-50 tracking-tight mb-3">CapitalOS</h1>
-        <p className="text-zinc-400">Algorithmic Intelligence for Retail Investors.</p>
+        
+        <h1 className="text-4xl lg:text-6xl font-semibold text-white tracking-tight mb-6 leading-tight">
+          Modern tools for <br/>
+          <span className="text-zinc-500">
+            smart investors.
+          </span>
+        </h1>
+        
+        <p className="text-lg text-zinc-400 mb-10 max-w-xl leading-relaxed mx-auto lg:mx-0">
+          Track your portfolio, analyze market trends, and optimize your wealth with our clean, unified platform.
+        </p>
+        
+        <div className="flex items-center justify-center lg:justify-start gap-8 text-sm text-zinc-500">
+          <div className="flex flex-col gap-1.5"><strong className="text-zinc-200 text-lg">Secure</strong> Bank-grade encryption</div>
+          <div className="w-px h-8 bg-white/10"></div>
+          <div className="flex flex-col gap-1.5"><strong className="text-zinc-200 text-lg">Live</strong> Real-time data</div>
+          <div className="w-px h-8 bg-white/10"></div>
+          <div className="flex flex-col gap-1.5"><strong className="text-zinc-200 text-lg">Simple</strong> CAS Integration</div>
+        </div>
       </div>
 
-      <Card className="animate-in slide-in-from-bottom-8 duration-700 delay-150 p-8">
-        <div className="space-y-4">
+      {/* Right Column: Clean Login Card */}
+      <div className="w-full max-w-md animate-in slide-in-from-right-8 duration-1000 delay-200">
+        <div className="bg-[#0a0a0a] border border-white/10 p-8 rounded-2xl shadow-xl">
+          
+          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-black font-bold text-2xl mb-6">
+            C
+          </div>
+          
+          <h2 className="text-2xl font-semibold text-white mb-2 tracking-tight">Welcome to CapitalOS</h2>
+          <p className="text-zinc-400 text-sm mb-8 leading-relaxed">Sign in to securely connect your broker data and access the dashboard.</p>
+
           <button 
             onClick={onLogin}
             disabled={configError}
-            className="w-full py-3.5 bg-zinc-100 text-black font-semibold rounded-xl hover:bg-white transition-all transform hover:scale-[1.02] active:scale-95 shadow-xl shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-white text-black font-semibold rounded-lg hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
-            Access Terminal <ArrowUpDown className="w-4 h-4 rotate-90" />
+            Continue to Dashboard <ChevronRight className="w-4 h-4" />
           </button>
+
           {configError && (
-             <p className="text-center text-xs text-rose-500 mt-4 font-medium border border-rose-500/20 bg-rose-500/10 p-3 rounded-lg">
-              Firebase Config Missing! Please paste your Firebase keys into the App.jsx file to enable authentication.
-             </p>
+             <div className="mt-4 p-3 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 text-xs font-medium leading-relaxed">
+              <strong className="block mb-1 text-sm text-rose-300">Configuration Missing</strong>
+              Please paste your Firebase keys into the App.jsx file to enable authentication.
+             </div>
           )}
-          <p className="text-center text-xs text-zinc-600 mt-4">
-            By entering, you agree to our terms of service and quantitative data policies.
-          </p>
+
+          <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-center gap-2 text-xs text-zinc-500 font-medium">
+            <ShieldCheck className="w-4 h-4 text-zinc-400" /> End-to-end encrypted
+          </div>
         </div>
-      </Card>
+      </div>
     </div>
   </div>
 );
@@ -454,7 +487,7 @@ export default function App() {
       await signInAnonymously(auth);
     } catch (err) {
       console.error("Login failed:", err);
-      alert("Login failed. Check console or verify Firebase settings.");
+      alert("Login failed. Check console or verify Firebase settings and ensure Anonymous sign-in is enabled in Firebase Console.");
     }
   }
 
@@ -465,12 +498,10 @@ export default function App() {
 
     const fetchLivePrices = async () => {
       try {
-        // Try fetching from our Vercel Backend
         const res = await fetch('/api/prices');
         if (!res.ok) throw new Error('API route not found locally');
         const data = await res.json();
         
-        // Transform incoming Vercel API data to match UI shape
         setStocks(prev => data.map(d => {
           const old = prev.find(p => p.sym === d.sym);
           const newPrice = d.price;
@@ -479,7 +510,6 @@ export default function App() {
         }));
         setIsLiveMode(true);
       } catch (err) {
-        // Fallback Simulation
         setIsLiveMode(false);
         setStocks(prev => prev.map(s => {
           const newPrice = generateNextPrice(s.price, s.vol);
@@ -501,7 +531,7 @@ export default function App() {
     setUser(null);
   };
 
-  if (loading) return <div className="h-screen bg-black flex items-center justify-center"><div className="w-8 h-8 border-2 border-zinc-800 border-t-zinc-100 rounded-full animate-spin"></div></div>;
+  if (loading) return <div className="h-screen bg-[#050505] flex items-center justify-center"><div className="w-6 h-6 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin"></div></div>;
 
   if (!user) return <LoginScreen onLogin={handleLogin} configError={configError} />;
 
@@ -511,25 +541,24 @@ export default function App() {
   ];
 
   return (
-    <div className="flex h-screen text-zinc-300 overflow-hidden selection:bg-blue-500/30">
+    <div className="flex h-screen text-zinc-300 overflow-hidden selection:bg-zinc-500/30">
       
       {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#050505] border-r border-[#1a1a1a] transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-16 flex items-center px-6 border-b border-[#1a1a1a]">
-          <div className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center text-black font-bold text-xl mr-3 shadow-md shadow-white/5">C</div>
+          <div className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center text-black font-bold text-xl mr-3">C</div>
           <div>
             <div className="font-bold text-zinc-50 tracking-tight leading-none text-lg">CapitalOS</div>
-            <div className="text-[9px] uppercase tracking-widest text-zinc-500 mt-1 font-semibold">Algorithmic Intelligence</div>
           </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
-          <div className="px-3 text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-3 mt-4 first:mt-0">Terminal Modules</div>
+          <div className="px-3 text-xs font-medium text-zinc-500 mb-3 mt-4 first:mt-0">Menu</div>
           {NAV_ITEMS.map(item => (
             <button
               key={item.id}
               onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }}
-              className={`w-full flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${activeTab === item.id ? 'bg-white/10 text-zinc-50 shadow-sm' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}`}
+              className={`w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${activeTab === item.id ? 'bg-white/10 text-zinc-50' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}`}
             >
               <item.icon className={`w-4 h-4 mr-3 ${activeTab === item.id ? 'text-zinc-50' : 'text-zinc-500 group-hover:text-zinc-300'}`} />
               {item.label}
@@ -538,8 +567,8 @@ export default function App() {
         </nav>
 
         <div className="p-4 border-t border-[#1a1a1a]">
-          <div className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition-colors">
-            <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-xs font-bold text-blue-400">
+          <div className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors">
+            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-400">
               US
             </div>
             <div className="flex-1 overflow-hidden">
@@ -570,7 +599,7 @@ export default function App() {
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${isLiveMode ? 'bg-emerald-500' : 'bg-orange-500'}`}></span>
               </span>
               <span className={`text-[10px] font-bold uppercase tracking-widest ${isLiveMode ? 'text-emerald-500' : 'text-orange-500'}`}>
-                {isLiveMode ? 'Real-Time Data' : 'Simulated Data'}
+                {isLiveMode ? 'Live Data' : 'Simulated Data'}
               </span>
             </div>
           </div>
