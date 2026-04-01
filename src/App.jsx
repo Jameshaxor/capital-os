@@ -10,7 +10,7 @@ import {
 
 // FIREBASE IMPORTS
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
+import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 
 // --- FIREBASE INITIALIZATION ---
@@ -27,6 +27,7 @@ const firebaseConfig = {
 const app = firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null;
 const auth = app ? getAuth(app) : null;
 const db = app ? getFirestore(app) : null;
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // --- STOCK & INDEX TEMPLATES ---
 const SECTORS = ['Banking', 'IT', 'Energy', 'FMCG', 'Auto', 'Pharma', 'Telecom', 'Metals'];
@@ -48,6 +49,14 @@ const INDEX_TEMPLATES = [
   { id: 'sensex', name: 'SENSEX', basePrice: 72831.94, vol: 0.001 },
   { id: 'bank', name: 'NIFTY BANK', basePrice: 47562.30, vol: 0.0015 },
   { id: 'it', name: 'NIFTY IT', basePrice: 36890.15, vol: 0.0012 }
+];
+
+const NEWS_FEED = [
+  { id: 1, time: '2m ago', title: 'RBI maintains status quo on repo rate at 6.5%', source: 'Financial Express', sentiment: 'neutral' },
+  { id: 2, time: '15m ago', title: 'FIIs turn net buyers, pump ₹2,450 Cr into Indian equities', source: 'Market Daily', sentiment: 'bullish' },
+  { id: 3, time: '1h ago', title: 'Global markets jittery ahead of US Fed commentary', source: 'CNBC', sentiment: 'bearish' },
+  { id: 4, time: '2h ago', title: 'IT Sector margins expected to contract in Q4', source: 'Reuters', sentiment: 'bearish' },
+  { id: 5, time: '3h ago', title: 'Auto sales show 12% YoY growth across passenger vehicles', source: 'Bloomberg', sentiment: 'bullish' }
 ];
 
 const MUTUAL_FUNDS = [
@@ -132,7 +141,6 @@ const fetchRealMarketDataFromAI = async () => {
     }
   };
 
-  // Exponential backoff for API robustness
   const delays = [1000, 2000, 4000];
   for (let i = 0; i < 3; i++) {
     try {
@@ -791,7 +799,7 @@ const PortfolioView = ({ user, liveStocks }) => {
     }
     
     try {
-      const portfolioRef = collection(db, 'users', user.uid, 'portfolio');
+      const portfolioRef = collection(db, 'artifacts', appId, 'users', user.uid, 'portfolio');
       const unsubscribe = onSnapshot(portfolioRef, (snapshot) => {
         const fetchedPortfolio = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setPortfolio(fetchedPortfolio);
@@ -822,7 +830,7 @@ const PortfolioView = ({ user, liveStocks }) => {
         ];
 
         if (db) {
-          const portfolioRef = collection(db, 'users', user.uid, 'portfolio');
+          const portfolioRef = collection(db, 'artifacts', appId, 'users', user.uid, 'portfolio');
           for (const holding of mockParsedHoldings) {
             const docRef = doc(portfolioRef, holding.sym);
             await setDoc(docRef, holding);
@@ -985,7 +993,7 @@ const OnboardingScreen = ({ user, onComplete }) => {
     setSaving(true);
     try {
       if (db) {
-         await setDoc(doc(db, 'users', user.uid), { displayName: name.trim() }, { merge: true });
+         await setDoc(doc(db, 'artifacts', appId, 'users', user.uid), { displayName: name.trim() }, { merge: true });
       }
     } catch(err) {
       console.warn("DB not connected, proceeding locally.", err);
@@ -1139,14 +1147,14 @@ export default function App() {
   const [stocks, setStocks] = useState(() => 
     STOCK_TEMPLATES.map(s => {
       const history = generateHistory(s.basePrice, s.vol);
-      return { ...s, history, price: history[history.length - 1], changePct: ((history[history.length - 1] - s.basePrice) / s.basePrice) * 100 }
+      return { ...s, history, price: history[history.length - 1], changePct: ((history[history.length - 1] - s.basePrice) / s.basePrice) * 100, basePrice: s.basePrice }
     })
   );
   
   const [indices, setIndices] = useState(() => 
     INDEX_TEMPLATES.map(idx => {
       const history = generateHistory(idx.basePrice, idx.vol);
-      return { ...idx, history, price: history[history.length - 1], changePct: ((history[history.length - 1] - idx.basePrice) / idx.basePrice) * 100 }
+      return { ...idx, history, price: history[history.length - 1], changePct: ((history[history.length - 1] - idx.basePrice) / idx.basePrice) * 100, basePrice: idx.basePrice }
     })
   );
 
@@ -1166,7 +1174,7 @@ export default function App() {
         setUser(currentUser);
         if (db) {
            try {
-             const docSnap = await getDoc(doc(db, 'users', currentUser.uid));
+             const docSnap = await getDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid));
              if (docSnap.exists() && docSnap.data().displayName) {
                setUserProfile(docSnap.data());
              }
@@ -1223,7 +1231,7 @@ export default function App() {
                history[history.length - 1] = aiMatch.price; 
                return { ...template, price: aiMatch.price, changePct: aiMatch.changePct, history, basePrice };
              }
-             return { ...template, price: template.basePrice, changePct: 0, history: Array(40).fill(template.basePrice) };
+             return { ...template, price: template.basePrice, changePct: 0, history: Array(40).fill(template.basePrice), basePrice: template.basePrice };
            }));
         }
 
@@ -1237,12 +1245,17 @@ export default function App() {
                history[history.length - 1] = aiMatch.price;
                return { ...template, price: aiMatch.price, changePct: aiMatch.changePct, history, basePrice };
              }
-             return { ...template, price: template.basePrice, changePct: 0, history: Array(40).fill(template.basePrice) };
+             return { ...template, price: template.basePrice, changePct: 0, history: Array(40).fill(template.basePrice), basePrice: template.basePrice };
            }));
         }
 
-        if (realData.news && realData.news.length > 0) setNewsFeed(realData.news);
-        if (realData.summary) setAiSummary(realData.summary);
+        if (realData.news && realData.news.length > 0) {
+          setNewsFeed(realData.news);
+        }
+        
+        if (realData.summary) {
+          setAiSummary(typeof realData.summary === 'string' ? realData.summary : JSON.stringify(realData.summary));
+        }
 
         setApiStatus("live");
         setIsAiLoading(false);
