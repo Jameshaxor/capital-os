@@ -14,12 +14,12 @@ import { getFirestore, collection, doc, setDoc, onSnapshot } from 'firebase/fire
 // --- FIREBASE INITIALIZATION ---
 // PASTE YOUR FIREBASE CONFIG KEYS HERE
 const firebaseConfig = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyCw2rNU1drpsUidujbQMIIfLuQ6LmZcgxo",
+  authDomain: "capitalos-f34f6.firebaseapp.com",
+  projectId: "capitalos-f34f6",
+  storageBucket: "capitalos-f34f6.firebasestorage.app",
+  messagingSenderId: "426663595227",
+  appId: "1:426663595227:web:cbdf7344b950a8e98ad0fe"
 };
 
 // Initialize Firebase only if config is provided
