@@ -95,8 +95,16 @@ const generateHistory = (basePrice, volatility, points = 40) => {
 
 // --- GEMINI AI INTEGRATION (REAL DATA FETCH) ---
 const fetchRealMarketDataFromAI = async () => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY; // Provided globally by execution environment
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+  // 1. Fetch the key from Vite Environment Variables
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
+
+  if (!apiKey) {
+    console.error("🚨 API KEY MISSING! Vercel did not inject VITE_GEMINI_API_KEY.");
+    throw new Error("Missing API Key");
+  }
+
+  // 2. Use the stable public model, NOT the preview model
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
   
   const prompt = `Search the web for the absolute latest, real-time stock prices (in INR) and percentage changes for today in the Indian Stock Market.
   Find data for: RELIANCE, TCS, HDFCBANK, INFY, ICICIBANK, ITC, TATAMOTORS, SUNPHARMA.
@@ -106,7 +114,7 @@ const fetchRealMarketDataFromAI = async () => {
 
   const payload = {
     contents: [{ parts: [{ text: prompt }] }],
-    tools: [{ google_search: {} }],
+    tools: [{ google_search: {} }], // Enables live web search
     systemInstruction: { parts: [{ text: "You are a financial API. You must return only valid JSON according to the schema. Always ensure all 8 stocks and 4 indices are included." }] },
     generationConfig: {
       responseMimeType: "application/json",
@@ -149,10 +157,17 @@ const fetchRealMarketDataFromAI = async () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+      
       const data = await res.json();
+      
+      if (!res.ok) {
+        console.error("🚨 GOOGLE API ERROR:", data.error.message);
+        throw new Error(data.error.message);
+      }
+      
       return JSON.parse(data.candidates[0].content.parts[0].text);
     } catch (error) {
+      console.warn(`Attempt ${i + 1} failed:`, error);
       if (i === 2) throw error;
       await new Promise(r => setTimeout(r, delays[i]));
     }
