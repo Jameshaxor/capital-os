@@ -10,11 +10,10 @@ import {
 
 // FIREBASE IMPORTS
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 
 // --- FIREBASE INITIALIZATION ---
-// PASTE YOUR FIREBASE CONFIG KEYS HERE
 const firebaseConfig = {
   apiKey: "AIzaSyCw2rNU1drpsUidujbQMIIfLuQ6LmZcgxo",
   authDomain: "capitalos-f34f6.firebaseapp.com",
@@ -51,14 +50,6 @@ const INDEX_TEMPLATES = [
   { id: 'it', name: 'NIFTY IT', basePrice: 36890.15, vol: 0.0012 }
 ];
 
-const NEWS_FEED = [
-  { id: 1, time: '2m ago', title: 'RBI maintains status quo on repo rate at 6.5%', source: 'Financial Express', sentiment: 'neutral' },
-  { id: 2, time: '15m ago', title: 'FIIs turn net buyers, pump ₹2,450 Cr into Indian equities', source: 'Market Daily', sentiment: 'bullish' },
-  { id: 3, time: '1h ago', title: 'Global markets jittery ahead of US Fed commentary', source: 'CNBC', sentiment: 'bearish' },
-  { id: 4, time: '2h ago', title: 'IT Sector margins expected to contract in Q4', source: 'Reuters', sentiment: 'bearish' },
-  { id: 5, time: '3h ago', title: 'Auto sales show 12% YoY growth across passenger vehicles', source: 'Bloomberg', sentiment: 'bullish' }
-];
-
 const MUTUAL_FUNDS = [
   { name: 'Parag Parikh Flexi Cap Fund', house: 'PPFAS', rating: 5, nav: 68.45, ret1y: 28.4, ret3y: 22.1, aum: '48,200 Cr', risk: 'Moderate' },
   { name: 'Mirae Asset Large Cap Fund', house: 'Mirae Asset', rating: 5, nav: 92.30, ret1y: 18.2, ret3y: 16.8, aum: '38,500 Cr', risk: 'Moderate' },
@@ -71,6 +62,14 @@ const TAX_INSTRUMENTS = [
   { name: 'ELSS Mutual Funds', section: '80C', limit: 150000, invested: 120000, icon: '📈', returns: '12-15% p.a.' },
   { name: 'PPF', section: '80C', limit: 150000, invested: 50000, icon: '🏦', returns: '7.1% p.a.' },
   { name: 'Health Insurance', section: '80D', limit: 75000, invested: 25000, icon: '🏥', returns: 'Tax Saving' },
+];
+
+const NEWS_FEED = [
+  { id: 1, time: '2m ago', title: 'RBI maintains status quo on repo rate at 6.5%', source: 'Financial Express', sentiment: 'neutral' },
+  { id: 2, time: '15m ago', title: 'FIIs turn net buyers, pump ₹2,450 Cr into Indian equities', source: 'Market Daily', sentiment: 'bullish' },
+  { id: 3, time: '1h ago', title: 'Global markets jittery ahead of US Fed commentary', source: 'CNBC', sentiment: 'bearish' },
+  { id: 4, time: '2h ago', title: 'IT Sector margins expected to contract in Q4', source: 'Reuters', sentiment: 'bearish' },
+  { id: 5, time: '3h ago', title: 'Auto sales show 12% YoY growth across passenger vehicles', source: 'Bloomberg', sentiment: 'bullish' }
 ];
 
 // --- UTILS ---
@@ -95,16 +94,9 @@ const generateHistory = (basePrice, volatility, points = 40) => {
 
 // --- GEMINI AI INTEGRATION (REAL DATA FETCH) ---
 const fetchRealMarketDataFromAI = async () => {
-  // 1. Fetch the key from Vite Environment Variables
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
 
-  if (!apiKey) {
-    console.error("🚨 API KEY MISSING! Vercel did not inject VITE_GEMINI_API_KEY.");
-    throw new Error("Missing API Key");
-  }
-
-  // 2. Use the stable public model, NOT the preview model
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
   
   const prompt = `Search the web for the absolute latest, real-time stock prices (in INR) and percentage changes for today in the Indian Stock Market.
   Find data for: RELIANCE, TCS, HDFCBANK, INFY, ICICIBANK, ITC, TATAMOTORS, SUNPHARMA.
@@ -114,34 +106,16 @@ const fetchRealMarketDataFromAI = async () => {
 
   const payload = {
     contents: [{ parts: [{ text: prompt }] }],
-    tools: [{ google_search: {} }], // Enables live web search
+    tools: [{ google_search: {} }],
     systemInstruction: { parts: [{ text: "You are a financial API. You must return only valid JSON according to the schema. Always ensure all 8 stocks and 4 indices are included." }] },
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: {
         type: "OBJECT",
         properties: {
-          stocks: {
-            type: "ARRAY",
-            items: {
-              type: "OBJECT",
-              properties: { sym: { type: "STRING" }, price: { type: "NUMBER" }, changePct: { type: "NUMBER" } }
-            }
-          },
-          indices: {
-            type: "ARRAY",
-            items: {
-              type: "OBJECT",
-              properties: { id: { type: "STRING" }, price: { type: "NUMBER" }, changePct: { type: "NUMBER" } }
-            }
-          },
-          news: {
-            type: "ARRAY",
-            items: {
-              type: "OBJECT",
-              properties: { title: { type: "STRING" }, source: { type: "STRING" }, time: { type: "STRING" }, sentiment: { type: "STRING" } }
-            }
-          },
+          stocks: { type: "ARRAY", items: { type: "OBJECT", properties: { sym: { type: "STRING" }, price: { type: "NUMBER" }, changePct: { type: "NUMBER" } } } },
+          indices: { type: "ARRAY", items: { type: "OBJECT", properties: { id: { type: "STRING" }, price: { type: "NUMBER" }, changePct: { type: "NUMBER" } } } },
+          news: { type: "ARRAY", items: { type: "OBJECT", properties: { title: { type: "STRING" }, source: { type: "STRING" }, time: { type: "STRING" }, sentiment: { type: "STRING" } } } },
           summary: { type: "STRING" }
         },
         required: ["stocks", "indices", "news", "summary"]
@@ -149,29 +123,19 @@ const fetchRealMarketDataFromAI = async () => {
     }
   };
 
-  const delays = [1000, 2000, 4000];
-  for (let i = 0; i < 3; i++) {
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        console.error("🚨 GOOGLE API ERROR:", data.error.message);
-        throw new Error(data.error.message);
-      }
-      
-      return JSON.parse(data.candidates[0].content.parts[0].text);
-    } catch (error) {
-      console.warn(`Attempt ${i + 1} failed:`, error);
-      if (i === 2) throw error;
-      await new Promise(r => setTimeout(r, delays[i]));
-    }
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  
+  const data = await res.json();
+  
+  if (!res.ok) {
+    throw new Error(data.error?.message || "Google API request failed");
   }
+  
+  return JSON.parse(data.candidates[0].content.parts[0].text);
 };
 
 
@@ -472,7 +436,6 @@ const ScreenerView = ({ stocks }) => {
 };
 
 const WatchlistView = ({ stocks }) => {
-  // Using a mock watchlist derived from first 3 stocks
   const watchlisted = stocks.slice(0,3);
 
   return (
@@ -814,7 +777,7 @@ const PortfolioView = ({ user, liveStocks }) => {
     }
     
     try {
-      const portfolioRef = collection(db, 'artifacts', appId, 'users', user.uid, 'portfolio');
+      const portfolioRef = collection(db, 'users', user.uid, 'portfolio');
       const unsubscribe = onSnapshot(portfolioRef, (snapshot) => {
         const fetchedPortfolio = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setPortfolio(fetchedPortfolio);
@@ -845,7 +808,7 @@ const PortfolioView = ({ user, liveStocks }) => {
         ];
 
         if (db) {
-          const portfolioRef = collection(db, 'artifacts', appId, 'users', user.uid, 'portfolio');
+          const portfolioRef = collection(db, 'users', user.uid, 'portfolio');
           for (const holding of mockParsedHoldings) {
             const docRef = doc(portfolioRef, holding.sym);
             await setDoc(docRef, holding);
@@ -1008,7 +971,7 @@ const OnboardingScreen = ({ user, onComplete }) => {
     setSaving(true);
     try {
       if (db) {
-         await setDoc(doc(db, 'artifacts', appId, 'users', user.uid), { displayName: name.trim() }, { merge: true });
+         await setDoc(doc(db, 'users', user.uid), { displayName: name.trim() }, { merge: true });
       }
     } catch(err) {
       console.warn("DB not connected, proceeding locally.", err);
@@ -1156,6 +1119,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [configError, setConfigError] = useState(false);
   const [apiStatus, setApiStatus] = useState("fetching"); // fetching, live, sim
+  const [apiErrorMsg, setApiErrorMsg] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(true);
 
   // Market State Initialize with Templates
@@ -1189,7 +1153,7 @@ export default function App() {
         setUser(currentUser);
         if (db) {
            try {
-             const docSnap = await getDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid));
+             const docSnap = await getDoc(doc(db, 'users', currentUser.uid));
              if (docSnap.exists() && docSnap.data().displayName) {
                setUserProfile(docSnap.data());
              }
@@ -1236,7 +1200,6 @@ export default function App() {
         
         if (!isMounted) return;
 
-        // Map AI Stocks onto Templates
         if (realData.stocks) {
            setStocks(STOCK_TEMPLATES.map(template => {
              const aiMatch = realData.stocks.find(s => s.sym === template.sym);
@@ -1250,7 +1213,6 @@ export default function App() {
            }));
         }
 
-        // Map AI Indices onto Templates
         if (realData.indices) {
            setIndices(INDEX_TEMPLATES.map(template => {
              const aiMatch = realData.indices.find(i => i.id === template.id);
@@ -1272,11 +1234,12 @@ export default function App() {
           setAiSummary(typeof realData.summary === 'string' ? realData.summary : JSON.stringify(realData.summary));
         }
 
+        setApiErrorMsg("");
         setApiStatus("live");
         setIsAiLoading(false);
       } catch (err) {
-        console.error("AI Data Fetch Failed. Using local simulation.", err);
         if (isMounted) {
+          setApiErrorMsg(err.message || "Missing API Key");
           setApiStatus("sim");
           setIsAiLoading(false);
         }
@@ -1428,8 +1391,9 @@ export default function App() {
             )}
             
             {apiStatus === "sim" && (
-              <div className="hidden lg:flex items-center gap-2 text-xs font-medium text-zinc-400">
-                <Info className="w-4 h-4" /> AI Data Unavailable. Using Simulation.
+              <div className="hidden lg:flex items-center gap-2 text-xs font-medium text-orange-400 bg-orange-500/10 border border-orange-500/20 px-3 py-1.5 rounded-lg max-w-md truncate">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" /> 
+                <span className="truncate">AI Offline: {apiErrorMsg || "Simulation Active"}</span>
               </div>
             )}
 
